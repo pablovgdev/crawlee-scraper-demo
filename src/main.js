@@ -1,3 +1,4 @@
-import genscraper from "./genscraper.js";
+import genscraper from './genscraper.js'
+import actions from './actions.js'
 
-genscraper('https://www.google.com', 'playwright')
+await genscraper(actions)
