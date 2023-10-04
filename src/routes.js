@@ -25,6 +25,10 @@ function fixLink(link, httpMethod, rootUrl) {
 		return link
 	}
 
+	if (link.startsWith('//')) {
+		return link.replace('//', 'https://')
+	}
+
 	if (link.startsWith('/') && link.includes(rootUrl)) {
 		return `${httpMethod}://${link.replace('/', '')}`
 	}
@@ -35,10 +39,9 @@ function fixLink(link, httpMethod, rootUrl) {
 playwrightRouter.addDefaultHandler(async ({ request, page, log, pushData }) => {
 	log.info('URL: ' + request.loadedUrl)
 
-	const [body, images, urls] = await Promise.all([
+	const [body, images] = await Promise.all([
 		page.$eval('body', (body) => body.innerHTML),
-		page.$$('img'),
-		page.$$eval('a', (anchors) => anchors.map((a) => a.href))
+		page.$$eval('img', (images) => images.map((img) => img.src))
 	])
 
 	const url = request.loadedUrl
@@ -48,7 +51,7 @@ playwrightRouter.addDefaultHandler(async ({ request, page, log, pushData }) => {
 		.replace(/http:\/\//, '')
 		.split('/')[0]
 
-	const links = urls.map((link) => fixLink(link, httpMethod, rootUrl))
+	const imageUrls = images.map((link) => fixLink(link, httpMethod, rootUrl))
 	const bodyText = convert(body)
 	const addonName = "I don't know how to get this yet, need demo url"
 	const vendorName = "I don't know how to get this yet, need demo url"
@@ -59,7 +62,7 @@ playwrightRouter.addDefaultHandler(async ({ request, page, log, pushData }) => {
 		addonName,
 		vendorName,
 		imageCount,
-		links,
+		imageUrls,
 		body,
 		bodyText
 	}
@@ -79,12 +82,11 @@ cheerioRouter.addDefaultHandler(async ({ request, $, log, pushData }) => {
 		.replace(/http:\/\//, '')
 		.split('/')[0]
 
-	const links = $('a')
-		.map((_, el) => $(el).attr('href'))
+	const images = $('img')
+		.map((_, el) => $(el).attr('src'))
 		.get()
-		.map((link) => fixLink(link, httpMethod, rootUrl))
 
-	const images = $('img').get()
+	const imageUrls = images.map((link) => fixLink(link, httpMethod, rootUrl))
 
 	const body = $('body').html()
 	const bodyText = convert(body)
@@ -97,7 +99,7 @@ cheerioRouter.addDefaultHandler(async ({ request, $, log, pushData }) => {
 		addonName,
 		vendorName,
 		imageCount,
-		links,
+		imageUrls,
 		body,
 		bodyText
 	}
